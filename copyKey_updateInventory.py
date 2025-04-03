@@ -6,7 +6,7 @@ private_key_path = os.path.expanduser("~/.ssh/id_rsa")
 public_key_path = os.path.expanduser("~/.ssh/id_rsa.pub")
 
 # Path to your Ansible inventory file
-inventory_file_path = "/path/to/your/Ansible_repo/inventory.ini"
+inventory_file_path = "/Ansible_repo/inventory.ini"
 
 # Terraform command to fetch the output
 terraform_command = "terraform output -json instance_ips"
