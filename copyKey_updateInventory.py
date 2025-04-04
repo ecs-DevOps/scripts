@@ -1,23 +1,35 @@
 import subprocess
 import os
+import json
 
 # Path to your SSH private and public key
 private_key_path = os.path.expanduser("~/.ssh/id_rsa")
 public_key_path = os.path.expanduser("~/.ssh/id_rsa.pub")
 
 # Path to your Ansible inventory file
-inventory_file_path = "/Ansible_repo/inventory.ini"
+inventory_file_path = "/home/ubuntu/Ansible_repo/inventory.ini"
 
-# Terraform command to fetch the output
-terraform_command = "terraform output -json instance_ips"
+# Terraform directory (set this to the correct relative path)
+terraform_dir = "/home/ubuntu/terraform-ec2"  # Adjust the path as needed
 
 # Run the Terraform command to get instance IPs
 def get_instance_ips():
     try:
-        result = subprocess.run(terraform_command, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        # Change the working directory to the Terraform configuration folder
+        result = subprocess.run(
+            ["terraform", "output", "-json", "instance_ips"],
+            cwd=terraform_dir,
+            check=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE
+        )
+
+        # Decode the output and parse the JSON to get the IPs
         output = result.stdout.decode('utf-8')
-        # Parse the JSON output from Terraform to get the list of IPs
-        return subprocess.check_output("echo '{}' | jq -r '.instance_ips.value[]'".format(output), shell=True).decode().splitlines()
+        instance_ips = json.loads(output)
+
+        # Return the list of IPs (flattening if it's nested)
+        return instance_ips
     except subprocess.CalledProcessError as e:
         print(f"Error fetching instance IPs: {e.stderr.decode()}")
         return []
@@ -27,7 +39,10 @@ def copy_ssh_key_to_instance(instance_ip):
     try:
         # Use subprocess to call the ssh-copy-id command
         print(f"Copying SSH key to {instance_ip}...")
-        subprocess.run(["ssh-copy-id", "-i", public_key_path, "-o", "StrictHostKeyChecking=no", "-o", "UserKnownHostsFile=/dev/null", f"ubuntu@{instance_ip}"], check=True)
+        subprocess.run(
+            ["ssh-copy-id", "-i", public_key_path, "-o", "StrictHostKeyChecking=no", "-o", "UserKnownHostsFile=/dev/null", f"ubuntu@{instance_ip}"],
+            check=True
+        )
         print(f"Successfully copied the SSH public key to {instance_ip}")
     except subprocess.CalledProcessError as e:
         print(f"Error copying SSH key to {instance_ip}: {str(e)}")
